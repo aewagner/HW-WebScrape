@@ -17,7 +17,7 @@ var cheerio = require("cheerio");
 var app = express();
 
 // Database configuration
-var databaseUrl = "scraper";
+var databaseUrl = "rChinaScraper";
 var collections = ["scrapedData"];
 
 // Hook mongojs configuration to the db variable
