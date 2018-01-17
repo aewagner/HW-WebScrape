@@ -2,7 +2,7 @@ const request = require('request');
 const cheerio = require('cheerio');
 
 
-const article = require('../models/Article');
+const Article = require('../models/Article');
 
 exports.scraper = function(req, res) {
     request('https://www.reddit.com/r/china', function(error, response, html) {
@@ -15,10 +15,10 @@ exports.scraper = function(req, res) {
             // then save the values for any "href" attributes that the child elements may have
             let link = $(element).children().attr("href");
 
-            article.findOne({ title: title }, function(err, match) {
+            Article.findOne({ title: title }, function(err, match) {
                 if (!match) {
 
-                    article.create({
+                    Article.create({
                             title: title,
                             link: link
                         },

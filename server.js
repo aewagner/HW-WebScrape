@@ -1,109 +1,41 @@
-/* Students: Using the tools and techniques you learned so far,
- * you will scrape a website of your choice, then place the data
- * in a MongoDB database. Be sure to make the database and collection
- * before running this exercise.
+const express = require('express');
+const path = require('path');
+const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+const exphbs = require('express-handlebars');
 
- * Consult the assignment files from earlier in class
- * if you need a refresher on Cheerio. */
+const app = express();
+// set views folder
+app.set('views', path.join(__dirname, "views"));
+// setup handlebars view engine
+app.engine('handlebars', exphbs({
+    defaultLayout:'main'
+}));
+app.set('view engine', 'handlebars');
 
-// Dependencies
-var express = require("express");
-var mongojs = require("mongojs");
-// Require request and cheerio. This makes the scraping possible
-var request = require("request");
-var cheerio = require("cheerio");
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Initialize Express
-var app = express();
 
-// Database configuration
-var databaseUrl = "rChinaScraper";
-var collections = ["scrapedData"];
+require('./routes')(app);
 
-// Hook mongojs configuration to the db variable
-var db = mongojs(databaseUrl, collections);
-db.on("error", function(error) {
-  console.log("Database Error:", error);
+
+// setup mongoose connection
+const configDB = require('./config/database');
+mongoose.connect(configDB.url);
+
+const db = mongoose.connection;
+
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+
+db.once('open', function(){
+    console.log("Mongoose connection successful");
 });
 
-// Main route (simple Hello World Message)
-app.get("/", function(req, res) {
-  res.send("Hello world");
-});
+// port 
+const PORT = process.env.PORT || 3005;
 
-/* TODO: make two more routes
- * -/-/-/-/-/-/-/-/-/-/-/-/- */
-
-// Route 1
-// =======
-// This route will retrieve all of the data
-// from the scrapedData collection as a json (this will be populated
-// by the data you scrape using the next route)
-app.get("/all", function(req, res) {
-  // Query: In our database, go to the scrapedData collection, then "find" everything
-  db.scrapedData.find({}, function(error, found) {
-    // Log any errors if the server encounters one
-    if (error) {
-      console.log(error);
-    }
-    // Otherwise, send the result of this query to the browser
-    else {
-      res.json(found);
-    }
-  });
-});
-// Route 2
-// =======
-// When you visit this route, the server will
-// scrape data from the site of your choice, and save it to
-// MongoDB.
-// TIP: Think back to how you pushed website data
-// into an empty array in the last class. How do you
-// push it into a MongoDB collection instead?
-
-app.get("/scraper", function(req, res) {
-  
-  request("https://www.reddit.com/r/china", function(error, response, html) {
-
-  // Load the HTML into cheerio and save it to a variable
-  // '$' becomes a shorthand for cheerio's selector commands, much like jQuery's '$'
-  var $ = cheerio.load(html);
-
-  // An empty array to save the data that we'll scrape
-  var results = [];
-
-  // With cheerio, find each p-tag with the "title" class
-  // (i: iterator. element: the current element)
-  $("p.title").each(function(i, element) {
-
-    // Save the text of the element in a "title" variable
-    var title = $(element).text();
-
-    // In the currently selected element, look at its child elements (i.e., its a-tags),
-    // then save the values for any "href" attributes that the child elements may have
-    var link = $(element).children().attr("href");
-
-    // Save these results in an object that we'll push into the results array we defined earlier
-    results.push({
-      title: title,
-      link: link
-    });
-
-    db.scrapedData.insert({"title": title, "link": link});
-
-  });
-
-  // Log the results once you've looped through each of the elements found with cheerio
-  console.log(results);
-});
-  res.send("Scrape Complete");
-});
-
-
-
-/* -/-/-/-/-/-/-/-/-/-/-/-/- */
-
-// Listen on port 3000
-app.listen(3000, function() {
-  console.log("App running on port 3000!");
+app.listen(PORT, () => {
+    console.log(`App serving on port ${PORT}`)
 });
